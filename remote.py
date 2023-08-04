@@ -1,9 +1,7 @@
 import evdev
 from evdev import ecodes
 import threading
-from queue import Queue
 from kivy.event import EventDispatcher
-from kivy.properties import ObjectProperty
 from kivy.clock import Clock
 from functools import partial
 from kivy.app import App
@@ -18,25 +16,21 @@ class Remote:
     
     def __init__(self):
         self.remote_base = RemoteBase()
-        self.remote_base.bind(keypress=self.stop_reset_propagation)
 
     def bind(self, **kwargs):
         self.remote_base.bind(**kwargs)
-
-    def stop_reset_propagation(self, _, keycode):
-        if keycode == "reset": return True
 
     def get_remote_base(self):
         return self.remote_base
 
 
 class RemoteBase(EventDispatcher):
-    keypress = ObjectProperty(None)
+    def __init__(self, **kwargs):
+        self.register_event_type("on_keypress")
+        super(RemoteBase, self).__init__(**kwargs)
 
-    def __init__(self):
         self.device = find_remote()
         self.locked = False
-        self.queue = Queue()
 
         if not self.device:
             raise RuntimeError
@@ -44,7 +38,8 @@ class RemoteBase(EventDispatcher):
         self.thread = threading.Thread(target=self.listen, daemon=True)
         self.thread.start()
 
-    def set_keypress(self, keycode, *args):
+    def on_keypress(self, keycode, *args):
+        if keycode == "reset": return True
 
         # Handle shutdown key
         if keycode == "KEY_SLEEP":
@@ -57,8 +52,9 @@ class RemoteBase(EventDispatcher):
             socket.connect("tcp://127.0.0.1:5555")
 
             socket.send(b"shutdown")
-            return
+            return True
 
+    def set_keypress(self, keycode, *args):
         self.keypress = keycode
         self.keypress = "reset"
      
@@ -77,11 +73,9 @@ class RemoteBase(EventDispatcher):
                 continue
             
             code = ecodes.KEY[event.code]
-            Clock.schedule_once(partial(self.set_keypress, code))
-            self.queue.put(code)
+            Clock.schedule_once(partial(self.dispatch, "on_keypress", code))
 
             self.locked = True
-
 
 
 def find_remote():

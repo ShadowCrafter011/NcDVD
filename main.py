@@ -20,20 +20,15 @@ class Grid(GridLayout):
         self.add_widget(Label(text="Hello, World!", font_size=64))
 
         remote = Remote()
-        remote_2 = Remote()
-        print(remote is remote_2)
-        sys.stdout.flush()
-        remote.bind(keypress=self.add_key)
-        remote.bind(keypress=self.reset)
+        remote.bind(on_keypress=self.reset)
+        remote.bind(on_keypress=self.add_key)
 
-    def add_key(self, _, keycode):
-        #if keycode == "reset": return
-        
+    def add_key(self, instance, keycode, *args):        
         keypress_label = Label(text=f"Keypress {keycode}")
         self.add_widget(keypress_label)
         self.keypresses.append(keypress_label)
 
-    def reset(self, _, keycode):
+    def reset(self, instance, keycode, *args):
         if keycode != "KEY_HOME": return
         [self.remove_widget(keypress) for keypress in self.keypresses]
 
