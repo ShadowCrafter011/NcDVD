@@ -1,0 +1,6 @@
+# Ignore python virutal environment and ffpyplayer installation directory
+ffpyplayer/
+venv/
+
+# Ignore python cache
+__pycache__/
